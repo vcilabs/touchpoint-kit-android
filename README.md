@@ -5,7 +5,7 @@ The purpose of the Touchpoint mobile SDK is to create an integration between a m
 - minSdkVersion supported: 23
 
 ## Sample App
-https://github.com/chad-vc/touchpointkit-sample-android
+https://github.com/vcilabs/touchpointkit-sample-android
 
 ## Glossary
 - Touchpoint activity: an activity created by a user via the Touchpoint dashboard.
