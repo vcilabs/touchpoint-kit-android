@@ -55,7 +55,7 @@ A: Only one custom component per screen. The SDK will open the activity assigned
 A: This scenario is useful for a use case like a “collect feedback” button where you always want the user to be able to respond to the activity. There is an “always_show” property in distributions which forces the SDK to open the distribution regardless of how many times the visitor has completed/closed that activity.
 
 ## Installation
-Add the jitpack.io repository to the build.gradle or settings.gradle file. For example:
+Add the jitpack.io repository to the build.gradle or settings.gradle file (next to the other repository definitions in the app). For example:
 
 ```gradle
 dependencyResolutionManagement {
@@ -92,7 +92,7 @@ Add the following to the strings.xml file:
 ```
 
 Where:
-- The values for `API_KEY`, and `API_SECRET` will come from the API calls made above.
+- The values for `API_KEY`, and `API_SECRET` will come from invoking API calls.
 - `pod_name`: the “pod” that the Touchpoint instance belongs to. This can be determined from the URL bar when you are logged into Touchpoint, such as https://app.eu2.visioncritical.com/touchpoint. Can be one of: `na1`, `na2`, `eu1`, `eu2`, `ap2`.
 - `disable_api_filter`: used during testing to allow an activity to be shown to a user multiple times.
 - `enable_debug_logs`: forces the SDK to produce additional logging output.
