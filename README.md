@@ -280,6 +280,8 @@ public void onCreate() {
 Now create a file named `TouchPointKitBridge.java`. Add the following code to this file:
 
 ```java
+package com.visioncritical;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
@@ -287,19 +289,18 @@ import android.util.Log;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
-import com.facebook.react.bridge.ReadableType;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.visioncritical.touchpointkit.utils.TouchPointActivity;
-import com.visioncritical.touchpointkit.utils.TouchPointActivityInterface;
+import com.visioncritical.touchpointkit.utils.TouchPointActivityListener;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class TouchPointKitBridge extends ReactContextBaseJavaModule implements TouchPointActivityInterface {
+import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
+
+public class TouchPointKitBridge extends ReactContextBaseJavaModule implements TouchPointActivityListener {
     private static ReactApplicationContext reactContext;
 
     TouchPointKitBridge(ReactApplicationContext context) {
@@ -318,6 +319,11 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
     }
 
     @ReactMethod
+    public void refreshActivities() {
+        TouchPointActivity.Companion.getShared().refreshActivities();
+    }
+
+    @ReactMethod
     public void setScreen(String screenName) {
         Context context = getCurrentActivity();
 
@@ -325,11 +331,26 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
             context = reactContext;
         }
 
-        TouchPointActivity.Companion.getShared().setCurrentScreen(context, screenName);
+        Context finalContext = context;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TouchPointActivity.Companion.getShared().setCurrentScreen(finalContext, screenName);
+            }
+        });
     }
 
     @ReactMethod
     public void openActivity(String screenName, String componentName) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                openTouchPointActivityForScreen(screenName, componentName);
+            }
+        });
+    }
+
+    private void openTouchPointActivityForScreen(String screenName, String componentName) {
         if(TouchPointActivity.Companion.getShared().shouldShowActivity(screenName, componentName)) {
             Context context = getCurrentActivity();
 
@@ -338,6 +359,37 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
             }
             TouchPointActivity.Companion.getShared().openActivityForScreenComponent(context, screenName, componentName, this);
         }
+    }
+
+    @ReactMethod
+    public void openActivityForUrl(String url, Boolean alwaysShow) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                openTouchPointActivityForUrl(url, alwaysShow);
+            }
+        });
+    }
+
+    private void openTouchPointActivityForUrl(String url, Boolean alwaysShow) {
+        Context context = getCurrentActivity();
+
+        if (context == null) {
+            context = reactContext;
+        }
+        TouchPointActivity.Companion.getShared().openActivityForUrl(context, url, alwaysShow, this);
+    }
+
+    @ReactMethod
+    public void clearCache() {
+        Context context = getCurrentActivity();
+
+        if (context == null) {
+            context = reactContext;
+        }
+
+        SharedPreferences prefs = context.getSharedPreferences("com.visioncritical.touchpointkit", 0);
+        prefs.edit().clear().apply();
     }
 
     @ReactMethod
@@ -361,15 +413,47 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
     }
 
     @ReactMethod
-    public void setVisitor(HashMap<String, Object> visitor) {
-        TouchPointActivity.Companion.getShared().setVisitor(visitor);
+    public void setVisitor(ReadableMap visitor) {
+        TouchPointActivity.Companion.getShared().setVisitor(toHashMap(visitor));
     }
 
     @Override
-    public void onTouchPointActivityFinished() {
-        Log.d("TouchPointKitBridge","onTouchPointActivityFinished...");
+    public void onTouchPointActivityComplete() {
+        Log.d("TouchPointKitBridge","onTouchPointActivityComplete...");
         this.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit("onActivityComplete", "TouchPointActivityFinished");
+                .emit("onTouchPointActivityComplete", "TouchPointActivityComplete");
+    }
+
+    @Override
+    public void onTouchPointActivityCollapse() {
+        Log.d("TouchPointKitBridge","onTouchPointActivityCollapse...");
+        this.reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("onTouchPointActivityCollapse", "TouchPointActivityCollapse");
+    }
+
+    static HashMap<String, Object> toHashMap(ReadableMap map) {
+        HashMap<String, Object> hashMap = new HashMap<>();
+        ReadableMapKeySetIterator iterator = map.keySetIterator();
+        while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            switch (map.getType(key)) {
+                case Null:
+                    hashMap.put(key, null);
+                    break;
+                case Boolean:
+                    hashMap.put(key, map.getBoolean(key));
+                    break;
+                case Number:
+                    hashMap.put(key, map.getDouble(key));
+                    break;
+                case String:
+                    hashMap.put(key, map.getString(key));
+                    break;
+                default:
+                    throw new IllegalArgumentException("Could not convert object with key: " + key + ".");
+            }
+        }
+        return hashMap;
     }
 }
 ```
@@ -421,13 +505,23 @@ import {
 // Register for event listening from SDK (activity complete event)
 const { TouchPointKitBridge } = NativeModules;
 const eventEmitter = new NativeEventEmitter(TouchPointKitBridge);
-const subscription = eventEmitter.addListener(
-  'onActivityComplete',
-  onActivityComplete,
+eventEmitter.addListener(
+  'onTouchPointActivityComplete',
+  onTouchPointActivityComplete,
 );
 
-const onActivityComplete = event => {
-  console.log('onActivityComplete called');
+eventEmitter.addListener(
+  'onTouchPointActivityCollapse',
+  onTouchPointActivityCollapse,
+);
+
+const onTouchPointActivityComplete = (event) => {
+  console.log('onTouchPointActivityComplete called');
+  console.log(event);
+};
+
+const onTouchPointActivityCollapse = (event) => {
+  console.log('onTouchPointActivityCollapse called');
   console.log(event);
 };
 
