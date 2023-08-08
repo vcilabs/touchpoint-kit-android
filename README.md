@@ -110,10 +110,11 @@ val screenComponents:List<HashMap<String, String>> = listOf(
 // The locale is an optional parameter you can provide
 // It will indicate the language your activity is displayed to the user in
 // as long as that activity has been distributed with said language.
-// If not or no locale is provided, your activity will be displayed in English.
 // This same language logic applies to the banner text, should you have
 // an activity which is of type Banner
-// Valid values are: 'AR', 'ZH', 'EN', 'FR', 'DE', 'ID', 'IT', 'JA', 'KO', 'PL', 'PT', 'RU', 'ES', 'TH', 'TR', 'VI'
+// Valid values are: the ISO 639-1 code for the supported languages (found here: https://touchpoint.help.alida.com/enus/index.html#Languages)
+// such as 'EN', 'FR', 'IT', etc.
+// and the same default language as indicated there will apply if an invalid or no locale is provided
 val locale: String = 'EN'
 
 // The visitor payload describes the current user of the app. The "id"
