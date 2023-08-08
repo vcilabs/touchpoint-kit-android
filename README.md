@@ -107,6 +107,16 @@ val screenComponents:List<HashMap<String, String>> = listOf(
     hashMapOf("screenName" to "ProductList")
 )
 
+// The locale is an optional parameter you can provide
+// It will indicate the language your activity is displayed to the user in
+// as long as that activity has been distributed with said language.
+// This same language logic applies to the banner text, should you have
+// an activity which is of type Banner
+// Valid values are: the ISO 639-1 code for the supported languages (found here: https://touchpoint.help.alida.com/enus/index.html#Languages)
+// such as 'EN', 'FR', 'IT', etc.
+// and the same default language as indicated there will apply if an invalid or no locale is provided
+val locale: String = 'EN'
+
 // The visitor payload describes the current user of the app. The "id"
 // is used to help determine if this particular user has already
 // seen certain activities and should be a unique identifier.
@@ -124,7 +134,7 @@ userAttributes[2] = hashMapOf("key" to "isLoyaltyMember", "type" to "boolean", "
 userAttributes[3] = hashMapOf("key" to "previousVisitDate", "type" to "date", "value" to "2022-04-11T21:51:34+0000")
 visitor["userAttributes"] = userAttributes
 
-TouchPointActivity.shared.configure(screenComponents, visitor)
+TouchPointActivity.shared.configure(screenComponents, visitor, locale)
 ```
 
 #### NOTE
@@ -244,6 +254,8 @@ public void onCreate() {
     }}
   );
 
+  String locale = "EN"
+
   HashMap<String, Object> visitor = new HashMap<String, Object>() {{
     put("id", "12345");
   }};
@@ -271,7 +283,7 @@ public void onCreate() {
   };
   visitor.put("userAttributes", userAttributes);
 
-  TouchPointActivity.Companion.getShared().configure(screenComponents, visitor);
+  TouchPointActivity.Companion.getShared().configure(screenComponents, visitor, locale);
 
   // ...
 }
@@ -314,8 +326,8 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
     }
 
     @ReactMethod
-    public void configure(List<HashMap<String, String>> screenComponents, HashMap<String, Object> visitor) {
-        TouchPointActivity.Companion.getShared().configure(screenComponents, visitor);
+    public void configure(List<HashMap<String, String>> screenComponents, HashMap<String, Object> visitor, String locale) {
+        TouchPointActivity.Companion.getShared().configure(screenComponents, visitor, locale);
     }
 
     @ReactMethod
