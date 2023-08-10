@@ -254,7 +254,7 @@ public void onCreate() {
     }}
   );
 
-  String locale = "EN"
+  String locale = "EN";
 
   HashMap<String, Object> visitor = new HashMap<String, Object>() {{
     put("id", "12345");
@@ -292,8 +292,6 @@ public void onCreate() {
 Now create a file named `TouchPointKitBridge.java`. Add the following code to this file:
 
 ```java
-package com.visioncritical;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
@@ -301,12 +299,14 @@ import android.util.Log;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.visioncritical.touchpointkit.utils.TouchPointActivity;
 import com.visioncritical.touchpointkit.utils.TouchPointActivityListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -326,8 +326,13 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
     }
 
     @ReactMethod
-    public void configure(List<HashMap<String, String>> screenComponents, HashMap<String, Object> visitor, String locale) {
-        TouchPointActivity.Companion.getShared().configure(screenComponents, visitor, locale);
+    public void configure(ReadableArray screenComponents, ReadableMap visitor) {
+        TouchPointActivity.Companion.getShared().configure(toListOfHashMaps(screenComponents), toHashMap(visitor), "EN");
+    }
+
+    @ReactMethod
+    public void configureWithLocale(ReadableArray screenComponents, ReadableMap visitor, String locale) {
+        TouchPointActivity.Companion.getShared().configure(toListOfHashMaps(screenComponents), toHashMap(visitor), locale);
     }
 
     @ReactMethod
@@ -429,6 +434,11 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
         TouchPointActivity.Companion.getShared().setVisitor(toHashMap(visitor));
     }
 
+    @ReactMethod
+    public void setLocale(String locale) {
+        TouchPointActivity.Companion.getShared().setLocale(locale);
+    }
+
     @Override
     public void onTouchPointActivityComplete() {
         Log.d("TouchPointKitBridge","onTouchPointActivityComplete...");
@@ -466,6 +476,30 @@ public class TouchPointKitBridge extends ReactContextBaseJavaModule implements T
             }
         }
         return hashMap;
+    }
+
+    static List<HashMap<String, String>> toListOfHashMaps(ReadableArray array) {
+        List<HashMap<String, String>> listOfHashMaps = new ArrayList<>();
+        for (int i = 0; i < array.size(); i++) {
+            ReadableMap map = array.getMap(i);
+            HashMap<String, String> hashMap = new HashMap<>();
+            ReadableMapKeySetIterator iterator = map.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                switch (map.getType(key)) {
+                    case Null:
+                        hashMap.put(key, null);
+                        break;
+                    case String:
+                        hashMap.put(key, map.getString(key));
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Could not convert object with key: " + key + ".");
+                }
+            }
+            listOfHashMaps.add(hashMap);
+        }
+        return listOfHashMaps;
     }
 }
 ```
